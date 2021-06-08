@@ -10,6 +10,7 @@ run:
 		--env-file=app.env \
 		-v /home/cychong/work/cbs-ost:/home/cychong/work/cbs-ost \
 		-v /home/cychong/public/ost:/home/cychong/public/ost \
+		-v /mnt/media/download:/mnt/media/download \
 		--name $(APP_NAME) \
 		$(APP_NAME) 
 
