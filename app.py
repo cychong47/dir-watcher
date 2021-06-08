@@ -14,10 +14,17 @@ class Watcher:
         self.observer = Observer()
 
         for item in watch_path.split(','):
-            self.directory_to_watch.append(item)
+            if pathlib.Path(item).is_dir() == True:
+                self.directory_to_watch.append(item)
+            else:
+                print(f"Skip {item}")
 
         self.notification = notification
-        print(f"Start watching {self.directory_to_watch}")
+        print(f"Directory to watch : {self.directory_to_watch}")
+        if notification.lower() == "telegram":
+            import telegram_send
+            tg = telegram_send.MyTelegram()
+            tg.send_msg(f"Directory watcher started")
 
     def run(self):
         event_handler = Handler(self.notification)
