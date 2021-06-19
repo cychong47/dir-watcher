@@ -1,4 +1,4 @@
-APP_NAME=dir-watcher
+APP_NAME=d-watcher
 DOCKER_REPO=ghcr.io/cychong47
 DOCKER=podman
 
