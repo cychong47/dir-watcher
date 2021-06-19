@@ -67,8 +67,15 @@ class Handler(FileSystemEventHandler):
                 file_done = False
                 file_size = -1
 
-                while file_size != pathlib.Path(event.src_path).stat().st_size:
-                    file_size = pathlib.Path(event.src_path).stat().st_size
+                try:
+                    t_file_size = pathlib.Path(event.src_path).stat().st_size
+                except:
+                    print(f"Abnormal : fail to get file size {event.src_path}")
+                    return
+                    # DO SOMETHING FIXME
+
+                while file_size != t_file_size:
+                    file_size = t_file_size
                     time.sleep(1)
 
                 while not file_done:
