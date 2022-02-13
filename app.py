@@ -2,10 +2,27 @@
 import sys
 import os
 import time
+import datetime
 import pathlib
 import frontmatter
+import logging
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
+
+class Log:
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def _timestamp():
+        return datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    @staticmethod
+    def debug(*msg):
+        print(Log._timestamp(), *msg)
+
+    def error(*msg):
+        print("[E]", Log._timestamp(), *msg)
 
 class Watcher:
     directory_to_watch = []
@@ -20,17 +37,21 @@ class Watcher:
                 print(f"Skip {item}")
 
         self.notification = notification
-        print(f"Directory to watch : {self.directory_to_watch}")
+        Log.debug(f"Directory to watch : {self.directory_to_watch}")
         if notification.lower() == "telegram":
             import telegram_send
             tg = telegram_send.MyTelegram()
             tg.send_msg(f"Directory watcher started")
 
+        logging.basicConfig(level=logging.INFO,
+                format='%(asctime)s - %(message)s',
+                datefmt='%Y-%m-%d %H:%M:%S')
+
     def run(self):
         event_handler = Handler(self.notification)
 
         for item in self.directory_to_watch:
-            print(f"Start watching {item}")
+            Log.debug(f"Start watching {item}")
             self.observer.schedule(event_handler, item, recursive=True)
 
         self.observer.start()
@@ -66,16 +87,22 @@ class Handler(FileSystemEventHandler):
                 # access it
                 file_done = False
                 file_size = -1
+                count = 0
 
-                try:
-                    t_file_size = pathlib.Path(event.src_path).stat().st_size
-                except:
-                    print(f"Abnormal : fail to get file size {event.src_path}")
-                    return
-                    # DO SOMETHING FIXME
 
-                while file_size != t_file_size:
-                    file_size = t_file_size
+                # if file size is not increased for 5 seconds, believe it
+                while count < 3:
+                    try:
+                        t_file_size = pathlib.Path(event.src_path).stat().st_size
+                    except:
+                        print(f"Abnormal : fail to get file size {event.src_path}")
+                        return
+
+                    if file_size != t_file_size:
+                        file_size = t_file_size
+                    else:
+                        count += 1
+
                     time.sleep(1)
 
                 while not file_done:
@@ -88,6 +115,10 @@ class Handler(FileSystemEventHandler):
                 if notification.lower() == "telegram":
                     import telegram_send
                     tg = telegram_send.MyTelegram()
+
+                directory = pathlib.Path(event.src_path).parent
+                if "privee" in str(directory):
+                    return
 
                 filename = pathlib.Path(event.src_path).name
                 if pathlib.Path(event.src_path).suffix == ".md":
@@ -103,14 +134,14 @@ class Handler(FileSystemEventHandler):
                     if notification.lower() == "telegram":
                         tg.send_msg(f"{filename}\n{duration}s   {len(songs)} songs\n\n{post.content}")
                     else:
-                        print(f"{filename} {duration}s   {len(songs)} songs")
+                        Log.debug(f"{filename} {duration}s   {len(songs)} songs")
                 else:
-                    print(f"{filename}\n({file_size} Bytes)")
+                    Log.debug(f"{event.src_path} ({file_size} Bytes)")
 
                     if notification.lower() == "telegram":
                         tg.send_msg(f"{filename}\n({file_size} Bytes)")
                     else:
-                        print(f"{filename}\n({file_size} Bytes)")
+                        Log.debug(f"{event.src_path} ({file_size} Bytes)")
 
 
 #        elif event.event_type == 'modified':
